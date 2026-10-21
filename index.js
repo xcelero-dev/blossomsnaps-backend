@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { initializeDatabase } from './initdb.js';
 import authRoutes from './routes/auth.js';
+import packageRoutes from './routes/packages.js';
 
 dotenv.config();
 
@@ -14,14 +15,15 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Register Auth Routes
+// Register Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/packages', packageRoutes);
 
 app.get('/', (req, res) => {
-  res.json({ status: 'Blossom Snaps Studio Admin Auth API is running live 🌸' });
+  res.json({ status: 'Blossom Snaps Studio API is running live 🌸' });
 });
 
-// Start Server and Initialize NeonDB Admins Table Immediately
+// Start Server and Initialize NeonDB Tables Immediately
 async function startServer() {
   try {
     await initializeDatabase();
