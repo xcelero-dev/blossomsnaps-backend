@@ -34,6 +34,37 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_packages_category ON packages (category);
     `);
 
+    // 3. Meetings Table
+    await query(`
+      CREATE TABLE IF NOT EXISTS meetings (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        meeting_date DATE NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        category VARCHAR(100) NOT NULL CHECK (category IN (
+          'Client Consultation',
+          'Photo Shoot',
+          'Video Editing Deadline',
+          'Equipment Prep'
+        )),
+        client_email VARCHAR(255),
+        description TEXT NOT NULL DEFAULT '',
+        reminder VARCHAR(50) NOT NULL CHECK (reminder IN (
+          '15 mins before',
+          '30 mins before',
+          '1 hour before',
+          '1 day before'
+        )),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_meetings_date ON meetings (meeting_date, start_time);
+    `);
+
     // Seed Master Admin Account: blossomsnapsstudios@gmail.com
     const masterEmail = 'blossomsnapsstudios@gmail.com';
     const rawPassword = 'blossomsnapsadmin2026!!@';
@@ -53,7 +84,7 @@ export async function initializeDatabase() {
       console.log("[SEED] Master admin account already exists.");
     }
 
-    console.log("Database initialization (Admins + Packages tables) completed successfully.");
+    console.log("Database initialization (Admins, Packages, Meetings tables) completed successfully.");
   } catch (error) {
     console.error("Failed to initialize database tables:", error);
     throw error;

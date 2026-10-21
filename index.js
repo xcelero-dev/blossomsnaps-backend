@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { initializeDatabase } from './initdb.js';
 import authRoutes from './routes/auth.js';
 import packageRoutes from './routes/packages.js';
+import meetingRoutes from './routes/meetings.js';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 // Register Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
+app.use('/api/meetings', meetingRoutes);
 
 app.get('/', (req, res) => {
   res.json({ status: 'Blossom Snaps Studio API is running live 🌸' });
