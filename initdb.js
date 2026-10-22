@@ -65,6 +65,40 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_meetings_date ON meetings (meeting_date, start_time);
     `);
 
+    // 4. Media (Cloudinary-backed gallery) Table
+    await query(`
+      CREATE TABLE IF NOT EXISTS media (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        category VARCHAR(100) NOT NULL CHECK (category IN (
+          'Weddings',
+          'Personal Photoshoots',
+          'Couples',
+          'Family',
+          'Baby Bump',
+          'Events & Commercial',
+          'Video Reels'
+        )),
+        media_type VARCHAR(10) NOT NULL CHECK (media_type IN ('image', 'video')),
+        file_name VARCHAR(255) NOT NULL,
+        file_size BIGINT NOT NULL DEFAULT 0,
+        width INTEGER,
+        height INTEGER,
+        url TEXT NOT NULL,
+        public_id TEXT UNIQUE NOT NULL,
+        tags TEXT[] NOT NULL DEFAULT '{}',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_media_category ON media (category);
+    `);
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_media_type ON media (media_type);
+    `);
+
     // Seed Master Admin Account: blossomsnapsstudios@gmail.com
     const masterEmail = 'blossomsnapsstudios@gmail.com';
     const rawPassword = 'blossomsnapsadmin2026!!@';
@@ -84,7 +118,7 @@ export async function initializeDatabase() {
       console.log("[SEED] Master admin account already exists.");
     }
 
-    console.log("Database initialization (Admins, Packages, Meetings tables) completed successfully.");
+    console.log("Database initialization (Admins, Packages, Meetings, Media tables) completed successfully.");
   } catch (error) {
     console.error("Failed to initialize database tables:", error);
     throw error;
