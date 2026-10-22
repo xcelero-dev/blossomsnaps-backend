@@ -9,10 +9,16 @@ import authRoutes from './routes/auth.js';
 import packageRoutes from './routes/packages.js';
 import meetingRoutes from './routes/meetings.js';
 import mediaRoutes from './routes/media.js';
+import inquiryRoutes from './routes/inquiries.js';
 import { isCloudinaryConfigured } from './config/cloudinary.js';
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+
+// The API sits behind a proxy on the host (Render etc.), so trust it.
+// Without this, req.ip is the proxy's address and the enquiry rate limit would
+// treat every visitor as the same person.
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors());
@@ -23,6 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/inquiries', inquiryRoutes);
 
 app.get('/', (req, res) => {
   res.json({ status: 'Blossom Snaps Studio API is running live 🌸' });

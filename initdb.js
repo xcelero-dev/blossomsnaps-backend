@@ -99,6 +99,45 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_media_type ON media (media_type);
     `);
 
+    // 5. Inquiries (contact form submissions) Table
+    // package_name / package_price are snapshots of what the client picked, so the
+    // enquiry stays accurate even if rates change later. NULL package = custom.
+    await query(`
+      CREATE TABLE IF NOT EXISTS inquiries (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        service VARCHAR(100) NOT NULL CHECK (service IN (
+          'Wedding',
+          'Culture that matters',
+          'Birthday',
+          'Portrait',
+          'Event',
+          'Fashion & Lifestyle',
+          'Music Video',
+          'Corporate Video',
+          'Social Media Content'
+        )),
+        package_name VARCHAR(255),
+        package_price NUMERIC(12, 2) CHECK (package_price IS NULL OR package_price >= 0),
+        event_date DATE,
+        message TEXT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN (
+          'new',
+          'contacted',
+          'booked',
+          'closed'
+        )),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_inquiries_status ON inquiries (status, created_at DESC);
+    `);
+
     // Seed Master Admin Account: blossomsnapsstudios@gmail.com
     const masterEmail = 'blossomsnapsstudios@gmail.com';
     const rawPassword = 'blossomsnapsadmin2026!!@';
@@ -118,7 +157,7 @@ export async function initializeDatabase() {
       console.log("[SEED] Master admin account already exists.");
     }
 
-    console.log("Database initialization (Admins, Packages, Meetings, Media tables) completed successfully.");
+    console.log("Database initialization (Admins, Packages, Meetings, Media, Inquiries tables) completed successfully.");
   } catch (error) {
     console.error("Failed to initialize database tables:", error);
     throw error;
