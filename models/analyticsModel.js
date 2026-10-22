@@ -1,10 +1,9 @@
 // models/analyticsModel.js
 // Everything here is worked out from the inquiries table:
 //   - an inquiry with status 'booked' is a booking
-//   - package_price is the agreed price, amount_paid is money received so far
+//   - package_price is the agreed price
 //   - a booking counts as completed once its event_date has passed
 import { query } from '../db.js';
-import { PAYMENT_STATUS_SQL } from './inquiryModel.js';
 
 const TZ = 'Africa/Nairobi';
 
@@ -45,10 +44,10 @@ export async function getAnalytics(requestedYear) {
   const prevMonth = refMonth - 1; // -1 means there is no earlier month this year
 
   const [monthlyRes, categoryRes, inquiryRes, outstandingRes, activeRes, recentRes] = await Promise.all([
-    // Revenue = money received on booked inquiries; shoots = booked jobs whose date has passed.
+    // Revenue = agreed price of booked inquiries; shoots = booked jobs whose date has passed.
     query(
       `SELECT EXTRACT(MONTH FROM ${JOB_DATE_SQL})::int AS month,
-              COALESCE(SUM(amount_paid), 0) AS revenue,
+              COALESCE(SUM(package_price), 0) AS revenue,
               COUNT(*) FILTER (WHERE event_date IS NOT NULL AND event_date < ${TODAY_SQL}) AS shoots
        FROM inquiries
        WHERE status = 'booked'
@@ -79,16 +78,17 @@ export async function getAnalytics(requestedYear) {
        GROUP BY 1`,
       [year]
     ),
-    // Money still owed on booked jobs with an agreed price. Not tied to the selected year.
+    // Value of booked jobs that haven't happened yet (upcoming). Not tied to the selected year.
     query(
-      `SELECT COALESCE(SUM(package_price - amount_paid), 0) AS outstanding
+      `SELECT COALESCE(SUM(package_price), 0) AS outstanding
        FROM inquiries
-       WHERE status = 'booked' AND package_price IS NOT NULL AND package_price > amount_paid`
+       WHERE status = 'booked'
+         AND package_price IS NOT NULL
+         AND (event_date IS NULL OR event_date >= ${TODAY_SQL})`
     ),
     query(`SELECT COUNT(*) AS active FROM inquiries WHERE status IN ('new', 'contacted')`),
     query(
-      `SELECT id, name, service, package_name, package_price, status,
-              ${PAYMENT_STATUS_SQL} AS payment_status, updated_at
+      `SELECT id, name, service, package_name, package_price, status, updated_at
        FROM inquiries
        WHERE status <> 'closed'
        ORDER BY updated_at DESC, id DESC
@@ -145,7 +145,7 @@ export async function getAnalytics(requestedYear) {
       action: actionText(r),
       time: r.updated_at,
       amount: r.package_price === null ? null : Number(r.package_price),
-      status: r.payment_status,
+      status: r.status,
     })),
   };
 }

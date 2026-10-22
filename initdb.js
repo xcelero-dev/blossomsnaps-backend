@@ -138,23 +138,29 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_inquiries_status ON inquiries (status, created_at DESC);
     `);
 
-    // Seed Master Admin Account: blossomsnapsstudios@gmail.com
-    const masterEmail = 'blossomsnapsstudios@gmail.com';
-    const rawPassword = 'blossomsnapsadmin2026!!@';
+    // Seed master admin account.
+    // Credentials come from environment variables (set ADMIN_EMAIL and
+    // ADMIN_PASSWORD in your Render dashboard) so they are never stored in code.
+    const masterEmail = process.env.ADMIN_EMAIL;
+    const rawPassword = process.env.ADMIN_PASSWORD;
 
-    const adminCheck = await query('SELECT * FROM admins WHERE email = $1', [masterEmail]);
-
-    if (adminCheck.rows.length === 0) {
-      const saltRounds = 10;
-      const passwordHash = await bcrypt.hash(rawPassword, saltRounds);
-
-      await query(
-        'INSERT INTO admins (email, password_hash, name) VALUES ($1, $2, $3)',
-        [masterEmail, passwordHash, 'Jerry Rawlings']
-      );
-      console.log(`[SEED] Master admin account created successfully (${masterEmail}).`);
+    if (!masterEmail || !rawPassword) {
+      console.warn('[SEED] ADMIN_EMAIL / ADMIN_PASSWORD not set, skipping admin seed.');
     } else {
-      console.log("[SEED] Master admin account already exists.");
+      const adminCheck = await query('SELECT id FROM admins WHERE email = $1', [masterEmail]);
+
+      if (adminCheck.rows.length === 0) {
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(rawPassword, saltRounds);
+
+        await query(
+          'INSERT INTO admins (email, password_hash, name) VALUES ($1, $2, $3)',
+          [masterEmail, passwordHash, 'Jerry Rawlings']
+        );
+        console.log(`[SEED] Master admin account created successfully (${masterEmail}).`);
+      } else {
+        console.log("[SEED] Master admin account already exists.");
+      }
     }
 
     console.log("Database initialization (Admins, Packages, Meetings, Media, Inquiries tables) completed successfully.");
