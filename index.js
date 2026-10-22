@@ -7,6 +7,7 @@ import cors from 'cors';
 import { initializeDatabase } from './initdb.js';
 import authRoutes from './routes/auth.js';
 import packageRoutes from './routes/packages.js';
+import analyticsRoutes from './routes/analytics.js';
 import meetingRoutes from './routes/meetings.js';
 import mediaRoutes from './routes/media.js';
 import inquiryRoutes from './routes/inquiries.js';
@@ -30,6 +31,8 @@ app.use('/api/packages', packageRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
 
 app.get('/', (req, res) => {
   res.json({ status: 'Blossom Snaps Studio API is running live 🌸' });
