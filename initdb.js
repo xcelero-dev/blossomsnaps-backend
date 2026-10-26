@@ -102,6 +102,7 @@ export async function initializeDatabase() {
     // 5. Inquiries (contact form submissions) Table
     // package_name / package_price are snapshots of what the client picked, so the
     // enquiry stays accurate even if rates change later. NULL package = custom.
+    // An inquiry with status 'booked' is a booking.
     await query(`
       CREATE TABLE IF NOT EXISTS inquiries (
         id SERIAL PRIMARY KEY,
@@ -134,8 +135,48 @@ export async function initializeDatabase() {
       );
     `);
 
+    // Money received so far on a booking (used by Analytics and by Paystack deposits).
+    // Added with ALTER so it also reaches databases where inquiries already exists.
+    // Safe to run on every start.
+    await query(`
+      ALTER TABLE inquiries
+      ADD COLUMN IF NOT EXISTS amount_paid NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (amount_paid >= 0);
+    `);
+
     await query(`
       CREATE INDEX IF NOT EXISTS idx_inquiries_status ON inquiries (status, created_at DESC);
+    `);
+
+    // 6. Payments Table - online deposits taken through Paystack.
+    // `amount` is in major units (KSH), `reference` is what Paystack knows the payment by.
+    // A payment is credited to its inquiry (amount_paid, status 'booked') once Paystack
+    // confirms it. The row is kept even if the inquiry is later deleted.
+    await query(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id SERIAL PRIMARY KEY,
+        inquiry_id INTEGER REFERENCES inquiries(id) ON DELETE SET NULL,
+        reference VARCHAR(100) UNIQUE NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+        currency VARCHAR(10) NOT NULL DEFAULT 'KES',
+        status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN (
+          'pending',
+          'success',
+          'failed',
+          'abandoned'
+        )),
+        channel VARCHAR(50),
+        paid_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_payments_inquiry ON payments (inquiry_id);
+    `);
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_payments_status ON payments (status, created_at DESC);
     `);
 
     // Seed master admin account.
@@ -163,7 +204,7 @@ export async function initializeDatabase() {
       }
     }
 
-    console.log("Database initialization (Admins, Packages, Meetings, Media, Inquiries tables) completed successfully.");
+    console.log("Database initialization (Admins, Packages, Meetings, Media, Inquiries, Payments tables) completed successfully.");
   } catch (error) {
     console.error("Failed to initialize database tables:", error);
     throw error;

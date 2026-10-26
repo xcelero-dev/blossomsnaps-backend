@@ -4,6 +4,7 @@ dotenv.config(); // must run before anything that reads process.env (e.g. the Cl
 
 import express from 'express';
 import cors from 'cors';
+import paymentRoutes from './routes/payments.js';
 import { initializeDatabase } from './initdb.js';
 import authRoutes from './routes/auth.js';
 import packageRoutes from './routes/packages.js';
@@ -32,6 +33,7 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 
 app.get('/', (req, res) => {
